@@ -27,19 +27,28 @@ public class EmailService {
     public void sendVerificationEmail(String toEmail, String firstName, String token) {
         String link = frontendUrl + "/verify-email?token=" + token;
         String html = """
-                <div style="font-family: Arial, sans-serif; max-width: 600px;">
-                  <h2>Hello %s,</h2>
-                  <p>Thanks for signing up to Rwanda Tickets! Please verify your email address.</p>
-                  <a href="%s" style="display:inline-block; padding:12px 24px; background:#6C47FF;
-                     color:white; border-radius:6px; text-decoration:none; font-weight:bold;">
-                    Verify Email
-                  </a>
-                  <p style="color:#888; margin-top:24px; font-size:13px;">
-                    This link expires in 24 hours. If you did not create an account, ignore this email.
-                  </p>
-                </div>
-                """.formatted(firstName, link);
-        send(toEmail, "Verify your email — Rwanda Tickets", html);
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+              <h1 style="font-size: 24px; color: #1a1a1a;">Welcome to Tickwet 🎉</h1>
+              <p style="font-size: 16px; color: #444;">Hi %s,</p>
+              <p style="font-size: 16px; color: #444;">
+                Thanks for signing up! Please confirm your email address to activate your account.
+              </p>
+              <div style="margin: 32px 0;">
+                <a href="%s" style="display: inline-block; padding: 14px 28px; background: #6C47FF;
+                   color: white; border-radius: 8px; text-decoration: none;
+                   font-size: 16px; font-weight: bold;">
+                  Confirm my account
+                </a>
+              </div>
+              <p style="font-size: 14px; color: #888;">Or copy this link into your browser:</p>
+              <p style="font-size: 13px; color: #6C47FF; word-break: break-all;">%s</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+              <p style="font-size: 12px; color: #aaa;">
+                This link expires in 24 hours. If you did not create a Tickwet account, ignore this email.
+              </p>
+            </div>
+            """.formatted(firstName, link, link);
+        send(toEmail, "Confirm your Tickwet account", html);
     }
 
     @Async

@@ -59,7 +59,6 @@ public class AuthService {
                 .build();
         userRepository.save(user);
 
-        // Create the appropriate profile
         if (req.getRole() == Role.ORGANIZER) {
             OrganizerProfile profile = OrganizerProfile.builder()
                     .user(user)
@@ -73,7 +72,6 @@ public class AuthService {
             buyerProfileRepository.save(profile);
         }
 
-        // Send verification email — failure is non-fatal with placeholder creds in dev
         try {
             emailService.sendVerificationEmail(user.getEmail(), user.getFirstName(), user.getEmailVerificationToken());
         } catch (Exception ignored) {}
@@ -101,7 +99,10 @@ public class AuthService {
             throw AppException.forbidden("Account is disabled");
         }
 
-        // Invalidate old refresh tokens for this user
+        if (!user.isEmailVerified()) {
+            throw AppException.forbidden("Please verify your email before logging in. Check your inbox for the confirmation link.");
+        }
+
         refreshTokenRepository.deleteByUser(user);
 
         String accessToken = jwtUtil.generateAccessToken(user);
@@ -140,14 +141,29 @@ public class AuthService {
     }
 
     @Transactional
+    public MessageResponse resendVerification(String email) {
+        userRepository.findByEmail(email.toLowerCase()).ifPresent(user -> {
+            if (!user.isEmailVerified()) {
+                user.setEmailVerificationToken(UUID.randomUUID().toString());
+                userRepository.save(user);
+                try {
+                    emailService.sendVerificationEmail(user.getEmail(), user.getFirstName(), user.getEmailVerificationToken());
+                } catch (Exception ignored) {}
+            }
+        });
+        return new MessageResponse("If that email exists and is unverified, a new confirmation link has been sent");
+    }
+
+    @Transactional
     public MessageResponse forgotPassword(ForgotPasswordRequest req) {
         userRepository.findByEmail(req.getEmail().toLowerCase()).ifPresent(user -> {
             user.setPasswordResetToken(UUID.randomUUID().toString());
             user.setPasswordResetExpiresAt(LocalDateTime.now().plusHours(2));
             userRepository.save(user);
-            try { emailService.sendPasswordResetEmail(user.getEmail(), user.getFirstName(), user.getPasswordResetToken()); } catch (Exception ignored) {}
+            try {
+                emailService.sendPasswordResetEmail(user.getEmail(), user.getFirstName(), user.getPasswordResetToken());
+            } catch (Exception ignored) {}
         });
-        // Always return success to prevent email enumeration
         return new MessageResponse("If that email exists, a reset link has been sent");
     }
 
@@ -165,7 +181,6 @@ public class AuthService {
         user.setPasswordResetExpiresAt(null);
         userRepository.save(user);
 
-        // Invalidate all refresh tokens
         refreshTokenRepository.deleteByUser(user);
 
         return new MessageResponse("Password reset successfully");
