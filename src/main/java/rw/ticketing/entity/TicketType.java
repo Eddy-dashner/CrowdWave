@@ -49,6 +49,17 @@ public class TicketType {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private boolean isActive = true;
+    @Column(name = "is_group_ticket", nullable = false)
+    @Builder.Default
+    private boolean isGroupTicket = false;
+
+    @Column(name = "min_group_size", nullable = false)
+    @Builder.Default
+    private Integer minGroupSize = 1;
+
+    @Column(name = "max_group_size", nullable = false)
+    @Builder.Default
+    private Integer maxGroupSize = 1;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default

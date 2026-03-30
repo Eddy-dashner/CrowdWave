@@ -15,6 +15,7 @@ import rw.ticketing.exception.AppException;
 import rw.ticketing.repository.*;
 import rw.ticketing.util.QrCodeUtil;
 import rw.ticketing.util.TicketCodeUtil;
+import rw.ticketing.dto.request.AttendeeRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -32,6 +33,7 @@ public class OrderService {
     private final QrCodeUtil qrCodeUtil;
     private final TicketCodeUtil ticketCodeUtil;
     private final EmailService emailService;
+    private final TicketAttendeeRepository ticketAttendeeRepository;
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest req, User currentUser) {
@@ -65,6 +67,18 @@ public class OrderService {
             if (!tt.hasAvailability(itemReq.getQuantity())) {
                 throw AppException.badRequest("Not enough tickets available for '" + tt.getName() + "'");
             }
+            if (tt.isGroupTicket()) {
+                int min = tt.getMinGroupSize();
+                int max = tt.getMaxGroupSize();
+                if (itemReq.getQuantity() < min || itemReq.getQuantity() > max) {
+                    throw AppException.badRequest(
+                            "'" + tt.getName() + "' requires between " + min + " and " + max + " attendees");
+                }
+                if (itemReq.getAttendees() == null || itemReq.getAttendees().size() != itemReq.getQuantity()) {
+                    throw AppException.badRequest(
+                            "Please provide details for all " + itemReq.getQuantity() + " attendees");
+                }
+            }
 
             BigDecimal subtotal = tt.getPrice().multiply(BigDecimal.valueOf(itemReq.getQuantity()));
             OrderItem item = OrderItem.builder()
@@ -73,10 +87,9 @@ public class OrderService {
                     .unitPrice(tt.getPrice())
                     .subtotal(subtotal)
                     .build();
+            item.setAttendeeRequests(itemReq.getAttendees());
             items.add(item);
-            total = total.add(subtotal);
 
-            // Reserve tickets (pessimistic — decrement happens on payment confirmation)
         }
 
         Order order = Order.builder()
@@ -84,7 +97,7 @@ public class OrderService {
                 .event(event)
                 .totalAmount(total)
                 .currency("RWF")
-                .expiresAt(LocalDateTime.now().plusMinutes(15)) // 15-min payment window
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
                 .build();
         orderRepository.save(order);
 
@@ -106,11 +119,13 @@ public class OrderService {
             throw AppException.badRequest("Order is not in PAID state");
         }
 
-        List<Ticket> tickets = new ArrayList<>();
         for (OrderItem item : order.getItems()) {
             TicketType tt = item.getTicketType();
             tt.incrementSold(item.getQuantity());
             ticketTypeRepository.save(tt);
+
+            List<AttendeeRequest> attendees = item.getAttendeeRequests();
+            boolean hasAttendees = attendees != null && !attendees.isEmpty();
 
             for (int i = 0; i < item.getQuantity(); i++) {
                 String code = generateUniqueCode();
@@ -125,25 +140,47 @@ public class OrderService {
                         .ticketCode(code)
                         .qrCodeData(qrBase64)
                         .build();
-                tickets.add(ticket);
+                ticketRepository.save(ticket);
+
+                // Determine who receives this ticket
+                String recipientEmail;
+                String recipientName;
+
+                if (hasAttendees && i < attendees.size()) {
+                    AttendeeRequest attendee = attendees.get(i);
+                    // Save attendee record
+                    TicketAttendee ta = TicketAttendee.builder()
+                            .ticket(ticket)
+                            .firstName(attendee.getFirstName())
+                            .lastName(attendee.getLastName())
+                            .email(attendee.getEmail())
+                            .build();
+                    ticketAttendeeRepository.save(ta);
+                    recipientEmail = attendee.getEmail();
+                    recipientName = attendee.getFirstName();
+                } else {
+                    // Fall back to buyer
+                    recipientEmail = order.getBuyer().getUser().getEmail();
+                    recipientName = order.getBuyer().getUser().getFirstName();
+                }
+
+                // Send individual ticket email
+                final String finalEmail = recipientEmail;
+                final String finalName = recipientName;
+                final String finalCode = code;
+                final String finalQr = qrBase64;
+                try {
+                    emailService.sendTicketConfirmation(
+                            finalEmail,
+                            finalName,
+                            order.getEvent().getTitle(),
+                            finalCode,
+                            finalQr
+                    );
+                } catch (Exception ignored) {}
             }
         }
-        ticketRepository.saveAll(tickets);
-
-        // Send confirmation email with first ticket
-        if (!tickets.isEmpty()) {
-            Ticket first = tickets.get(0);
-            User buyerUser = order.getBuyer().getUser();
-            emailService.sendTicketConfirmation(
-                    buyerUser.getEmail(),
-                    buyerUser.getFirstName(),
-                    order.getEvent().getTitle(),
-                    first.getTicketCode(),
-                    first.getQrCodeData()
-            );
-        }
     }
-
     @Transactional(readOnly = true)
     public Page<OrderResponse> getMyOrders(User currentUser, Pageable pageable) {
         BuyerProfile buyer = buyerProfileRepository.findByUser(currentUser)

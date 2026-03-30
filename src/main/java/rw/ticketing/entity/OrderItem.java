@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import rw.ticketing.dto.request.AttendeeRequest;
+import java.util.List;
 
 @Entity
 @Table(name = "order_items")
@@ -31,4 +33,6 @@ public class OrderItem {
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;
+    @Transient
+    private List<AttendeeRequest> attendeeRequests;
 }
