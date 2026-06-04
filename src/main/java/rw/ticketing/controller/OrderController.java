@@ -1,5 +1,6 @@
 package rw.ticketing.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import rw.ticketing.service.impl.OrderService;
 
 import java.util.UUID;
 
+@Tag(name = "Orders", description = "Place orders and view order history (authenticated buyers)")
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor

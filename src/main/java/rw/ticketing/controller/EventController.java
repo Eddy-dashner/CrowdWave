@@ -1,5 +1,7 @@
 package rw.ticketing.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +18,7 @@ import rw.ticketing.service.impl.EventService;
 
 import java.util.UUID;
 
+@Tag(name = "Events", description = "Browse public events, create and manage events as an organizer")
 @RestController
 @RequestMapping("/api/v1/events")
 @RequiredArgsConstructor
@@ -23,7 +26,6 @@ public class EventController {
 
     private final EventService eventService;
 
-    // ── Public endpoints ────────────────────────────────────────────────
 
     @GetMapping
     public ResponseEntity<Page<EventResponse>> listEvents(
@@ -39,8 +41,6 @@ public class EventController {
     public ResponseEntity<EventResponse> getEvent(@PathVariable UUID id) {
         return ResponseEntity.ok(eventService.getEvent(id));
     }
-
-    // ── Organizer endpoints ─────────────────────────────────────────────
 
     @PostMapping
     public ResponseEntity<EventResponse> createEvent(

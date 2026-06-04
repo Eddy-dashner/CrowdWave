@@ -18,8 +18,9 @@
     <description>Event ticketing platform for Rwanda</description>
 
     <properties>
-        <java.version>22</java.version>
+        <java.version>21</java.version>
         <jjwt.version>0.12.3</jjwt.version>
+        <lombok.version>1.18.36</lombok.version>
     </properties>
 
     <dependencies>
@@ -100,6 +101,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
+        <!-- Swagger / OpenAPI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.3.0</version>
         </dependency>
 
         <!-- Tests -->

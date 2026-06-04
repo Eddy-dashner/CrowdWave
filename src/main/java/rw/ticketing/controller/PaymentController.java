@@ -1,5 +1,8 @@
 package rw.ticketing.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +18,7 @@ import rw.ticketing.service.impl.PaymentService;
 import java.util.Map;
 import java.util.UUID;
 
+@Tag(name = "Payments", description = "Initiate MTN MoMo / Airtel Money payments and handle callbacks")
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
@@ -43,10 +47,8 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getPaymentStatus(orderId, currentUser));
     }
 
-    /**
-     * MTN MoMo webhook — called by MTN servers after payment succeeds or fails.
-     * This endpoint is public (no JWT) — secured by matching the externalRef.
-     */
+    @Operation(summary = "MTN MoMo webhook", description = "Called by MTN servers after payment succeeds or fails. Public — secured by externalRef matching.")
+    @SecurityRequirements
     @PutMapping("/callback/momo/{externalRef}")
     public ResponseEntity<MessageResponse> momoCallback(
             @PathVariable String externalRef,
@@ -57,9 +59,8 @@ public class PaymentController {
         return ResponseEntity.ok(new MessageResponse("Callback received"));
     }
 
-    /**
-     * Airtel Money webhook — same pattern as MoMo.
-     */
+    @Operation(summary = "Airtel Money webhook", description = "Called by Airtel servers after payment result.")
+    @SecurityRequirements
     @PostMapping("/callback/airtel/{externalRef}")
     public ResponseEntity<MessageResponse> airtelCallback(
             @PathVariable String externalRef,

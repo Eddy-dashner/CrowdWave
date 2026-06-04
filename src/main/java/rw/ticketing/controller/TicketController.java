@@ -1,5 +1,6 @@
 package rw.ticketing.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +16,7 @@ import rw.ticketing.service.impl.OrderService;
 
 import java.util.UUID;
 
+@Tag(name = "Tickets", description = "View tickets and check in attendees at the gate (ORGANIZER/ADMIN only for check-in)")
 @RestController
 @RequestMapping("/api/v1/tickets")
 @RequiredArgsConstructor

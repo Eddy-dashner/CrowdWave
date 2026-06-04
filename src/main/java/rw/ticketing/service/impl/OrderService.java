@@ -50,7 +50,6 @@ public class OrderService {
             throw AppException.badRequest("This event has already started");
         }
 
-        // Validate and lock ticket types
         List<OrderItem> items = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
 
